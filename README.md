@@ -13,7 +13,7 @@ Choose between the x86 and x64 versions of ZoomIt by specifying the Architecture
 The script can also configure various settings such as running ZoomIt on startup,
 accepting the EULA, hiding the system tray icon, and hiding the Options Window on first run.
 
-## Sysinternal Registry Key
+## Sysinternals Registry Key
 Current User Registry Key where the ZoomIt settings are stored. These are the current 3 settings that are configurable using the script.<br>
 ![Sysinternals Registry Key - ZoomIt](/Images/Install-ZoomIt_SysinternalsKey-ZoomIt.png)
 

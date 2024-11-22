@@ -4,7 +4,7 @@ A powershell script to Install ZoomIt from Sysinternals Live to the Users Docume
 ## SYNTAX
 
 ```powershell
-Install-ZoomIt.ps1 [-Architecture] [-AcceptEULA] [-RunOnStartup] [-ShowTrayIcon] [-ShowFirstRun]
+Install-ZoomIt.ps1 [-Architecture] [-AcceptEULA] [-RunOnStartup] [-ShowTrayIcon] [-ShowOptions]
 ```
 ## Description
 
@@ -14,11 +14,11 @@ The script can also configure various settings such as running ZoomIt on startup
 accepting the EULA, hiding the system tray icon, and hiding the Options Window on first run.
 
 ## Sysinternal Registry Key
-Current User Registry Key where the ZoomIt settings are stored. These are the current 3 settings that are configurable using the script.
+Current User Registry Key where the ZoomIt settings are stored. These are the current 3 settings that are configurable using the script.<br>
 ![Sysinternals Registry Key - ZoomIt](/Images/Install-ZoomIt_SysinternalsKey-ZoomIt.png)
 
 ## Current User Run Key
-Current User Run key. Regardless of what Architecutre EXE is used, the Value needs to be "ZoomIt" and the Data will be the path to the EXE file.
+Current User Run key. Regardless of what Architecutre EXE is used, the Value needs to be "ZoomIt" and the Data will be the path to the EXE file.<br>
 ![Current User Run Key - ZoomIt](/Images/Install-ZoomIt_CU-RunKey-ZoomIt.png)
 
 ## Example
@@ -26,14 +26,16 @@ Current User Run key. Regardless of what Architecutre EXE is used, the Value nee
 ### Example 1
 
 ```powershell
-PS /> .\Install-ZoomIt.ps1 -RunOnStartup -AcceptEULA
+.\Install-ZoomIt.ps1 -RunOnStartup -AcceptEULA
 ```
+
+This will install ZoomIt64.exe to the Documents folder, set to run on Startup, Accept the EULA so it doesn't appear, disable the Tray Icon, and disable the Options Windows from appear on the first run.
 
 ## PARAMETERS
 
 ### -Architecture
 
-Specify the architure of the ZoomIt file you want to download. Defaults to 'x64'
+Specify the architecture of the ZoomIt file you want to download. Defaults to 'x64'
 
 ```yaml
 Type: String
@@ -95,7 +97,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ShowFirstRun
+### -ShowOptions
 
 Specifies whether to show the Options Window on the first run. Controled by the Registry value "OptionsShown" in the key "HKCU:\Software\Sysinternals\ZoomIt". 
 

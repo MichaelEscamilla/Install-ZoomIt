@@ -19,7 +19,7 @@ Specifies whether to run ZoomIt on startup by adding a registry entry to the Cur
 .PARAMETER ShowTrayIcon
 Specifies whether to show the ZoomIt icon in the system tray.
 
-.PARAMETER ShowFirstRun
+.PARAMETER ShowOptions
 Specifies whether to show the Options Window on the first run.
 
 .PARAMETER Architecture
@@ -34,7 +34,8 @@ Author: Michael Escamilla
 Date: 11/22/2024
 
 Version History:
-2024-11-22 - Initial release.
+2024.11.22.0 - Initial release
+2024.11.22.1 - Changed Parameter ShowFirstRun to ShowOptions
 
 Future Improvements:
 - Check if ZoomIt is already running on system
@@ -50,7 +51,7 @@ param (
     [switch]$AcceptEULA,
     [switch]$RunOnStartup,
     [switch]$ShowTrayIcon,
-    [switch]$ShowFirstRun
+    [switch]$ShowOptions
 )
 
 ### Check if connected to the internet, No Internet, No ZoomIt
@@ -110,7 +111,7 @@ if ($AcceptEULA) {
 }
 
 ### Show First Run
-if (!($ShowFirstRun)) {
+if (!($ShowOptions)) {
     # Define the registry path for ZoomIt settings
     $RegPath = "HKCU:\Software\Sysinternals\ZoomIt"
     

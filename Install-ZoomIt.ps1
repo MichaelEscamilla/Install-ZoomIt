@@ -74,20 +74,61 @@ else {
 ### Parse File Name from Download URL
 $FileName = $DownloadURL.Split("/")[-1]
 
-### Set Save Path
+### Set Temporary Save Path
+# Temporarily save the file in the user's temp directory before moving it to the destination
+$SavePath = [System.IO.Path]::GetTempPath()
+
+## Set Destination Path
 # This method will grab the OneDrive folder if Backup is enabled
-$SavePath = [Environment]::GetFolderPath('MyDocuments')
+$DestinationPath = [Environment]::GetFolderPath('MyDocuments')
 
-### Combine Save Path and File Name
+### Build Save Path and Distination Path with File Name
 $SaveFile = Join-Path -Path $SavePath -ChildPath $FileName
+$DestinationFile = Join-Path -Path $DestinationPath -ChildPath $FileName
 
-### Download ZoomIt
+### Download ZoomIt to the Save Path
 try {
     Invoke-WebRequest -Uri $DownloadURL -OutFile $SaveFile -ErrorAction Stop
 }
 catch {
     Write-Error "Failed to download ZoomIt from $DownloadURL"
     exit 2
+}
+
+### Get the version of the downloaded ZoomIt
+$SaveFile_FileVersion = (Get-Item -Path $SaveFile).VersionInfo.FileVersion
+Write-Host "Downloaded ZoomIt: [$SaveFile] : [$SaveFile_FileVersion]"
+
+### Check if File already exists in Destination Path
+if ((Test-Path $DestinationFile)) {
+    # Get the version of the existing ZoomIt file in the destination path
+    $DestinationFile_FileVersion = (Get-Item -Path $DestinationFile).VersionInfo.FileVersion
+    Write-Host "Existing ZoomIt: [$DestinationFile] : [$DestinationFile_FileVersion]"
+
+    # Compare the version of the existing file with the downloaded file
+    if ([version]$DestinationFile_FileVersion -lt [version]$SaveFile_FileVersion) {
+        # Kill ZoomIt if it is running
+        Get-Process -Name $([System.IO.Path]::GetFileNameWithoutExtension("$FileName")) -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue -Force
+
+        # Overwrite the existing file with the new version if the downloaded version is newer
+        Copy-Item -Path $SaveFile -Destination $DestinationFile -Force
+        Write-Host "Updating Existing ZoomIt to version: [$SaveFile_FileVersion]"
+    }
+    else {
+        # Output a message indicating that the existing version is up to date
+        Write-Host "The existing version of ZoomIt is up to date."
+
+        # Remove the downloaded ZoomIt file if the existing version is up to date
+        Remove-Item -Path $SaveFile -Force -ErrorAction SilentlyContinue | Out-Null
+        Write-Host "Removed downloaded ZoomIt file: [$SaveFile]"
+    }
+} else {
+    # Kill ZoomIt if it is running
+    Get-Process -Name $([System.IO.Path]::GetFileNameWithoutExtension("$FileName")) -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue -Force
+    
+    # Copy the downloaded ZoomIt file to the destination path
+    Copy-Item -Path $SaveFile -Destination $DestinationFile
+    Write-Host "Successfully Saved ZoomIt: [$DestinationFile] : [$SaveFile_FileVersion]"
 }
 
 ### Create Accept EULA Registry Key if AcceptEULA switch is set

@@ -54,6 +54,48 @@ param (
     [switch]$ShowOptions
 )
 
+####### Functions #######
+#region Functions
+function Stop-ProcessByName {
+    param (
+        [string]$ProcessName
+    )
+    
+    try {
+        # Get the process(es) by name
+        $Processes = Get-Process -Name $ProcessName -ErrorAction Stop
+        # Loop through each process and stop it
+        foreach ($Process in $Processes) {
+            Stop-Process -Id $Process.Id -Force
+            Write-Host "Stopped process: $($Process.Name) (ID: $($Process.Id))"
+        }
+    }
+    catch {
+        Write-Host "No process with the name '$ProcessName' was found."
+    }
+}
+
+function Set-RegistryValue {
+    param (
+        [string]$Path,
+        [string]$Name,
+        [string]$Value,
+        [ValidateSet("String", "ExpandString", "MultiString", "Binary", "DWord", "Qword")]
+        [string]$PropertyType
+    )
+    
+    # Create the registry path if it doesn't exist
+    if (-not (Test-Path $Path)) {
+        New-Item -Path $Path -Force | Out-Null
+    }
+    
+    # Create or update the registry entry
+    New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
+    Write-Host "Successfully set registry key: [$Path] [$Name] = [$Value]" -ForegroundColor Green
+}
+#endregion
+#########################
+
 ### Check if connected to the internet, No Internet, No ZoomIt
 try {
     $null = Test-Connection -ComputerName google.com -Count 1 -ErrorAction Stop
@@ -74,15 +116,13 @@ else {
 ### Parse File Name from Download URL
 $FileName = $DownloadURL.Split("/")[-1]
 
-### Set Temporary Save Path
-# Temporarily save the file in the user's temp directory before moving it to the destination
+### Set Temporary Save Path - Temporarily save the file in the user's temp directory before moving it to the destination
 $SavePath = [System.IO.Path]::GetTempPath()
 
-## Set Destination Path
-# This method will grab the OneDrive folder if Backup is enabled
+## Set Destination Path - This method will grab the OneDrive folder if Backup is enabled
 $DestinationPath = [Environment]::GetFolderPath('MyDocuments')
 
-### Build Save Path and Distination Path with File Name
+### Build Save Path and Destination Path with File Name
 $SaveFile = Join-Path -Path $SavePath -ChildPath $FileName
 $DestinationFile = Join-Path -Path $DestinationPath -ChildPath $FileName
 
@@ -107,12 +147,16 @@ if ((Test-Path $DestinationFile)) {
 
     # Compare the version of the existing file with the downloaded file
     if ([version]$DestinationFile_FileVersion -lt [version]$SaveFile_FileVersion) {
-        # Kill ZoomIt if it is running
-        Get-Process -Name $([System.IO.Path]::GetFileNameWithoutExtension("$FileName")) -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue -Force
+        # Stop any running ZoomIt process
+        Write-Host "Stopping any running ZoomIt Process"
+        Stop-ProcessByName -ProcessName "$([System.IO.Path]::GetFileNameWithoutExtension("$FileName"))"
+
+        # Wait for the process to fully stop
+        Start-Sleep -Seconds 1
 
         # Overwrite the existing file with the new version if the downloaded version is newer
         Copy-Item -Path $SaveFile -Destination $DestinationFile -Force
-        Write-Host "Updating Existing ZoomIt to version: [$SaveFile_FileVersion]"
+        Write-Host "Successfully Updated Existing ZoomIt to version: [$SaveFile_FileVersion]" -ForegroundColor Green
     }
     else {
         # Output a message indicating that the existing version is up to date
@@ -122,86 +166,66 @@ if ((Test-Path $DestinationFile)) {
         Remove-Item -Path $SaveFile -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Host "Removed downloaded ZoomIt file: [$SaveFile]"
     }
-} else {
-    # Kill ZoomIt if it is running
-    Get-Process -Name $([System.IO.Path]::GetFileNameWithoutExtension("$FileName")) -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue -Force
-    
+}
+else {
     # Copy the downloaded ZoomIt file to the destination path
     Copy-Item -Path $SaveFile -Destination $DestinationFile
-    Write-Host "Successfully Saved ZoomIt: [$DestinationFile] : [$SaveFile_FileVersion]"
+    Write-Host "Successfully Saved ZoomIt: [$DestinationFile] : [$SaveFile_FileVersion]" -ForegroundColor Green
 }
 
 ### Create Accept EULA Registry Key if AcceptEULA switch is set
 if ($AcceptEULA) {
-    # Define the registry path for ZoomIt settings
+    Write-Host "Accept EULA option selected"
+
+    # Define the registry settings for ZoomIt
     $RegPath = "HKCU:\Software\Sysinternals\ZoomIt"
-    
-    # Define the registry entry name for EULA acceptance
     $RegName = "EulaAccepted"
-    
-    # Define the registry entry value to indicate EULA acceptance
     $RegValue = "1"
     
-    # Create the registry path if it doesn't exist
-    if (-not (Test-Path $RegPath)) {
-        New-Item -Path $RegPath -Force | Out-Null
-    }
-    
     # Create or update the registry entry to accept the EULA
-    New-ItemProperty -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord -Force | Out-Null
+    Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord
 }
 
 ### Show First Run
 if (!($ShowOptions)) {
-    # Define the registry path for ZoomIt settings
+    Write-Host "Show Options option selected"
+
+    # Define the registry settings for ZoomIt
     $RegPath = "HKCU:\Software\Sysinternals\ZoomIt"
-    
-    # Define the registry entry name for first run
     $RegName = "OptionsShown"
-    
-    # Define the registry entry value to indicate first run has been completed
     $RegValue = "1"
     
-    # Create the registry path if it doesn't exist
-    if (-not (Test-Path $RegPath)) {
-        New-Item -Path $RegPath -Force | Out-Null
-    }
-    
     # Create or update the registry entry to indicate first run has been completed
-    New-ItemProperty -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord -Force | Out-Null
+    Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord
 }
 
-### Remove from System Tray
-if (!($ShowTrayIcon)) {
-    # Define the registry path for ZoomIt settings
+### Set the System Tray value
+if ($null -ne $ShowTrayIcon) {
+    Write-Host "Show Tray Icon option selected"
+
+    # Define the registry settings for ZoomIt
     $RegPath = "HKCU:\Software\Sysinternals\ZoomIt"
-    
-    # Define the registry entry name for showing the system tray icon
     $RegName = "ShowTrayIcon"
-    
-    # Define the registry entry value to hide the system tray icon
-    $RegValue = "0"
-    
-    # Create the registry path if it doesn't exist
-    if (-not (Test-Path $RegPath)) {
-        New-Item -Path $RegPath -Force | Out-Null
+    if ($ShowTrayIcon) {
+        $RegValue = "1"
+    }
+    else {
+        $RegValue = "0"
     }
     
     # Create or update the registry entry to hide the system tray icon
-    New-ItemProperty -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord -Force | Out-Null
+    Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType DWord
 }
 
 ### Run On Startup via Registry
 if ($RunOnStartup) {
-    # Define the registry path for startup programs
+    Write-Host "Run On Startup option selected"
+
+    # Define the registry settings for startup programs
     $RegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-    
-    # Define the registry entry name for ZoomIt
     $RegName = "ZoomIt"
-    
-    # Define the registry entry value as the path to the ZoomIt executable
     $RegValue = $SaveFile
     
     # Create or update the registry entry to run ZoomIt on startup
-    New-ItemProperty -Path $RegPath -Name $RegName -Value $RegValue -PropertyType String -Force | Out-Null
+    Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType String
 }

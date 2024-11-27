@@ -17,7 +17,7 @@ This Prevents the EULA dialog from appearing on first run.
 Specifies whether to run ZoomIt on startup by adding a registry entry to the Current User's Run key.
 
 .PARAMETER ShowTrayIcon
-Specifies whether to show the ZoomIt icon in the system tray.
+Specifies whether to show the ZoomIt icon in the system tray. Will always set a value in the registry.
 
 .PARAMETER ShowOptions
 Specifies whether to show the Options Window on the first run.
@@ -34,13 +34,15 @@ Author: Michael Escamilla
 Date: 11/22/2024
 
 Version History:
-2024.11.22.0 - Initial release
-2024.11.22.1 - Changed Parameter ShowFirstRun to ShowOptions
+2024.11.22.0 -  Initial release
+2024.11.22.1 -  Changed Parameter ShowFirstRun to ShowOptions
+2024.11.27.0 -  Added Check if ZoomIt is already in Destination Path
+                Added Check if ZoomIt version is newer than the existing version in the Destination Path
+                Added Check if Zoomit is already running on system
+                Modified the ShowTrayIcon parameter to always set a value
+                Added some functions for repeated tasks
 
 Future Improvements:
-- Check if ZoomIt is already running on system
-- Check if zoomIt is already installed
-- Check if the installed version is the latest version
 - Add support for selecting a custom save path.
 - Add support for other ZoomIt settings.
 - Loggging maybe?

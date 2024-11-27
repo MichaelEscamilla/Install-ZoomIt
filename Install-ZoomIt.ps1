@@ -43,6 +43,7 @@ Version History:
                 Added some functions for repeated tasks
 
 Future Improvements:
+- When Stopping the Process, check if the process is running from the existing Destination Path
 - Add support for selecting a custom save path.
 - Add support for other ZoomIt settings.
 - Loggging maybe?
@@ -68,7 +69,12 @@ function Stop-ProcessByName {
         $Processes = Get-Process -Name $ProcessName -ErrorAction Stop
         # Loop through each process and stop it
         foreach ($Process in $Processes) {
+            # Stop the Process
             Stop-Process -Id $Process.Id -Force
+
+            # Wait for the process to fully stop
+            Start-Sleep -Seconds 1
+
             Write-Host "Stopped process: $($Process.Name) (ID: $($Process.Id))"
         }
     }
@@ -152,9 +158,6 @@ if ((Test-Path $DestinationFile)) {
         # Stop any running ZoomIt process
         Write-Host "Stopping any running ZoomIt Process"
         Stop-ProcessByName -ProcessName "$([System.IO.Path]::GetFileNameWithoutExtension("$FileName"))"
-
-        # Wait for the process to fully stop
-        Start-Sleep -Seconds 1
 
         # Overwrite the existing file with the new version if the downloaded version is newer
         Copy-Item -Path $SaveFile -Destination $DestinationFile -Force

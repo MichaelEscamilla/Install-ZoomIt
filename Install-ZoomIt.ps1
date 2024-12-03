@@ -24,7 +24,7 @@ Specifies whether to show the Options Window on the first run.
 
 .PARAMETER Architecture
 Specifies the architecture of the ZoomIt executable to download. Valid values are "x64" and "x86".
-Default is "x64".
+Default is "x64", I would recommend using the x64 version unless you have a specific reason to use the x86 version. The x86 version will run the x64 version from %TEMP% on a 64-bit system.
 
 .EXAMPLE
 Provide examples of how to use the script, including sample input and expected output.
@@ -36,14 +36,13 @@ Date: 11/22/2024
 Version History:
 2024.11.22.0 -  Initial release
 2024.11.22.1 -  Changed Parameter ShowFirstRun to ShowOptions
-2024.11.27.0 -  Added Check if ZoomIt is already in Destination Path
+2024.12.2.0 -   Added Check if ZoomIt is already in Destination Path
                 Added Check if ZoomIt version is newer than the existing version in the Destination Path
                 Added Check if Zoomit is already running on system
                 Modified the ShowTrayIcon parameter to always set a value
                 Added some functions for repeated tasks
 
 Future Improvements:
-- When Stopping the Process, check if the process is running from the existing Destination Path
 - Add support for selecting a custom save path.
 - Add support for other ZoomIt settings.
 - Loggging maybe?
@@ -125,6 +124,9 @@ Write-Host "Downloading ZoomIt from: [$DownloadURL]"
 ### Parse File Name from Download URL
 $FileName = $DownloadURL.Split("/")[-1]
 
+### Start all Zoomit Processes
+Stop-ProcessByName -ProcessName "ZoomIt*"
+
 ### Set Temporary Save Path - Temporarily save the file in the user's temp directory before moving it to the destination
 $SavePath = [System.IO.Path]::GetTempPath()
 
@@ -156,9 +158,8 @@ if ((Test-Path $DestinationFile)) {
 
     # Compare the version of the existing file with the downloaded file
     if ([version]$DestinationFile_FileVersion -lt [version]$SaveFile_FileVersion) {
-        # Stop any running ZoomIt process
-        Write-Host "Stopping any running ZoomIt Process"
-        Stop-ProcessByName -ProcessName "$([System.IO.Path]::GetFileNameWithoutExtension("$FileName"))"
+        # Stop any running ZoomIt processes
+        Stop-ProcessByName -ProcessName "ZoomIt*"
 
         # Overwrite the existing file with the new version if the downloaded version is newer
         Copy-Item -Path $SaveFile -Destination $DestinationFile -Force
@@ -167,10 +168,6 @@ if ((Test-Path $DestinationFile)) {
     else {
         # Output a message indicating that the existing version is up to date
         Write-Host "The existing version of ZoomIt is up to date."
-
-        # Remove the downloaded ZoomIt file if the existing version is up to date
-        Remove-Item -Path $SaveFile -Force -ErrorAction SilentlyContinue | Out-Null
-        Write-Host "Removed downloaded ZoomIt file: [$SaveFile]"
     }
 }
 else {

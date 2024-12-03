@@ -120,6 +120,7 @@ if ($Architecture -eq "x64") {
 else {
     $DownloadURL = "https://live.sysinternals.com/ZoomIt.exe"
 }
+Write-Host "Downloading ZoomIt from: [$DownloadURL]"
 
 ### Parse File Name from Download URL
 $FileName = $DownloadURL.Split("/")[-1]
@@ -177,6 +178,10 @@ else {
     Copy-Item -Path $SaveFile -Destination $DestinationFile
     Write-Host "Successfully Saved ZoomIt: [$DestinationFile] : [$SaveFile_FileVersion]" -ForegroundColor Green
 }
+
+### Cleanup the downloaded ZoomIt file from the Save Path
+Remove-Item -Path $SaveFile -Force -ErrorAction SilentlyContinue | Out-Null
+Write-Host "Removed downloaded ZoomIt file: [$SaveFile]"
 
 ### Create Accept EULA Registry Key if AcceptEULA switch is set
 if ($AcceptEULA) {

@@ -1,13 +1,17 @@
 # Install-ZoomIt
 A powershell script to Install ZoomIt from Sysinternals Live to the Users Documents folder. Configure various setting to customize the behavior.
 
-## SYNTAX
+## PSGallery
+[Available through the PSGallery](https://www.powershellgallery.com/packages/Install-ZoomIt)
+```powershell
+Install-Script -Name Install-ZoomIt
+```
 
+## SYNTAX
 ```powershell
 Install-ZoomIt.ps1 [-Architecture] [-AcceptEULA] [-RunOnStartup] [-ShowTrayIcon] [-ShowOptions]
 ```
 ## Description
-
 This script downloads and installs ZoomIt from Sysinternals Live and currently saves the EXE to the User's Documents folder.<br>
 Choose between the x86 and x64 versions of ZoomIt by specifying the Architecture parameter.<br>
 The script can also configure various settings such as running ZoomIt on startup,

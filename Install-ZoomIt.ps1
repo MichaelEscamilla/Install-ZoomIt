@@ -33,6 +33,7 @@
                     Modified the ShowTrayIcon parameter to always set a value
                     Added some functions for repeated tasks
 2024.12.2.2     :   Changes to Publish to PSGallery
+2024.12.2.3     :   Added Path option
 
 .PRIVATEDATA
 
@@ -46,6 +47,10 @@ This script downloads and installs ZoomIt from Sysinternals Live, and can option
 
 .DESCRIPTION
 This script downloads and installs ZoomIt from Sysinternals Live and currently saves the EXE to the User's Documents folder. Choose between the x86 and x64 versions of ZoomIt by specifying the Architecture parameter. The script can also configure various settings such as running ZoomIt on startup, accepting the EULA, hiding the system tray icon, and hiding the Options Window on first run.
+.PARAMETER Architecture
+Specifies the architecture of the ZoomIt executable to download. Valid values are "x64" and "x86". Default is "x64", I would recommend using the x64 version unless you have a specific reason to use the x86 version. The x86 version will run the x64 version from %TEMP% on a 64-bit system.
+.PARAMETER Path
+Specifies the path to save the ZoomIt executable. Default is the User's Documents folder.
 .PARAMETER AcceptEULA
 Specifies whether to accept the End User License Agreement (EULA) by creating a registry entry for EulaAccepted. This Prevents the EULA dialog from appearing on first run.
 .PARAMETER RunOnStartup
@@ -54,14 +59,11 @@ Specifies whether to run ZoomIt on startup by adding a registry entry to the Cur
 Specifies whether to show the ZoomIt icon in the system tray. Will always set a value in the registry.
 .PARAMETER ShowOptions
 Specifies whether to show the Options Window on the first run.
-.PARAMETER Architecture
-Specifies the architecture of the ZoomIt executable to download. Valid values are "x64" and "x86". Default is "x64", I would recommend using the x64 version unless you have a specific reason to use the x86 version. The x86 version will run the x64 version from %TEMP% on a 64-bit system.
 .EXAMPLE
 .\Install-ZoomIt.ps1 -AcceptEULA -RunOnStartup -ShowTrayIcon
 .NOTES
 Future Improvements:
 Add support for setting a custom Save path.
-Add support for setting a custom Destination Path.
 Add support for other ZoomIt settings.
 Loggging maybe
 
@@ -70,6 +72,7 @@ Loggging maybe
 param (
     [ValidateSet("x64", "x86")]
     [string]$Architecture = "x64",
+    [switch]$Path,
     [switch]$AcceptEULA,
     [switch]$RunOnStartup,
     [switch]$ShowTrayIcon,
@@ -150,8 +153,21 @@ Stop-ProcessByName -ProcessName "ZoomIt*"
 ### Set Temporary Save Path - Temporarily save the file in the user's temp directory before moving it to the destination
 $SavePath = [System.IO.Path]::GetTempPath()
 
-## Set Destination Path - This method will grab the OneDrive folder if Backup is enabled
-$DestinationPath = [Environment]::GetFolderPath('MyDocuments')
+## Set Destination Path
+if ($Path) {
+    Write-Host "Save Path option selected, checking if path exists"
+    # Check if the specified path exists else create it
+    if (-not (Test-Path $Path)) {
+        Write-Host "Path does not exist, creating path: [$Path]"
+        New-Item -Path $Path -ItemType Directory -Force | Out-Null
+    }
+    # Set the Destination Path to the specified path
+    $DestinationPath = $Path
+}
+else {
+    $DestinationPath = [Environment]::GetFolderPath('MyDocuments')
+}
+Write-Host "Destination Path set to: [$Path]"
 
 ### Build Save Path and Destination Path with File Name
 $SaveFile = Join-Path -Path $SavePath -ChildPath $FileName
@@ -251,7 +267,7 @@ if ($RunOnStartup) {
     # Define the registry settings for startup programs
     $RegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
     $RegName = "ZoomIt"
-    $RegValue = $SaveFile
+    $RegValue = $DestinationFile
     
     # Create or update the registry entry to run ZoomIt on startup
     Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType String

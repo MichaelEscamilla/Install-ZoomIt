@@ -72,7 +72,12 @@ Loggging maybe
 param (
     [ValidateSet("x64", "x86")]
     [string]$Architecture = "x64",
-    [switch]$Path,
+    [ValidateScript({
+            if ([System.Io.FileInfo]$_) {
+                return $true
+            }
+        })]
+    [System.IO.FileInfo]$Destination,
     [switch]$AcceptEULA,
     [switch]$RunOnStartup,
     [switch]$ShowTrayIcon,
@@ -154,20 +159,20 @@ Stop-ProcessByName -ProcessName "ZoomIt*"
 $SavePath = [System.IO.Path]::GetTempPath()
 
 ## Set Destination Path
-if ($Path) {
-    Write-Host "Save Path option selected, checking if path exists"
+if ($Destination) {
+    Write-Host "Destination Path option selected, checking if path exists"
     # Check if the specified path exists else create it
-    if (-not (Test-Path $Path)) {
-        Write-Host "Path does not exist, creating path: [$Path]"
-        New-Item -Path $Path -ItemType Directory -Force | Out-Null
+    if (-not (Test-Path $Destination)) {
+        Write-Host "Path does not exist, creating path: [$Destination]"
+        New-Item -Path $Destination -ItemType Directory -Force | Out-Null
     }
     # Set the Destination Path to the specified path
-    $DestinationPath = $Path
+    $DestinationPath = $Destination
 }
 else {
     $DestinationPath = [Environment]::GetFolderPath('MyDocuments')
 }
-Write-Host "Destination Path set to: [$Path]"
+Write-Host "Destination Path set to: [$Destination]"
 
 ### Build Save Path and Destination Path with File Name
 $SaveFile = Join-Path -Path $SavePath -ChildPath $FileName

@@ -1,8 +1,8 @@
 <#PSScriptInfo
 
-.VERSION 2024.12.7.0
+.VERSION 2024.12.7.1
 
-.GUID dd4c3ff8-933d-487d-b2b8-fb567510d38c
+.GUID be203b58-6231-4e3a-9e79-00265c646a97
 
 .AUTHOR Michael Escamilla
 
@@ -33,8 +33,9 @@
                     Modified the ShowTrayIcon parameter to always set a value
                     Added some functions for repeated tasks
 2024.12.2.2     :   Changes to Publish to PSGallery
-2024.12.2.7     :   Added Destination option
+2024.12.7.0     :   Added Destination option
                     Added StartZoomIt parameter
+2024.12.7.1     :   Fix Write-Host message for Destination Path
 
 .PRIVATEDATA
 
@@ -184,7 +185,7 @@ if ($Destination) {
 else {
     $DestinationPath = [Environment]::GetFolderPath('MyDocuments')
 }
-Write-Host "Destination Path set to: [$Destination]"
+Write-Host "Destination Path set to: [$DestinationPath]"
 
 ### Build Save Path and Destination Path with File Name
 $SaveFile = Join-Path -Path $SavePath -ChildPath $FileName

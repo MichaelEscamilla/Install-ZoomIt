@@ -1,8 +1,8 @@
 <#PSScriptInfo
 
-.VERSION 2024.12.2.2
+.VERSION 2024.12.2.7
 
-.GUID b312895f-b4bf-44c2-82f3-9e64b509c5bb
+.GUID dd4c3ff8-933d-487d-b2b8-fb567510d38c
 
 .AUTHOR Michael Escamilla
 
@@ -14,7 +14,7 @@
 
 .LICENSEURI
 
-.PROJECTURI
+.PROJECTURI https://github.com/MichaelEscamilla/Install-ZoomIt
 
 .ICONURI
 
@@ -33,23 +33,22 @@
                     Modified the ShowTrayIcon parameter to always set a value
                     Added some functions for repeated tasks
 2024.12.2.2     :   Changes to Publish to PSGallery
-2024.12.2.3     :   Added Path option
+2024.12.2.7     :   Added Destination option
+                    Added StartZoomIt parameter
 
 .PRIVATEDATA
 
 #> 
-
-
 
 <#
 .SYNOPSIS
 This script downloads and installs ZoomIt from Sysinternals Live, and can optionally configure various settings such as running on startup, accepting the EULA, hiding the system tray icon, and hiding the first run dialog.
 
 .DESCRIPTION
-This script downloads and installs ZoomIt from Sysinternals Live and currently saves the EXE to the User's Documents folder. Choose between the x86 and x64 versions of ZoomIt by specifying the Architecture parameter. The script can also configure various settings such as running ZoomIt on startup, accepting the EULA, hiding the system tray icon, and hiding the Options Window on first run.
+This script downloads and installs ZoomIt from Sysinternals Live. Choose between the x86 and x64 versions of ZoomIt by specifying the Architecture parameter. The script can also configure various settings such as running ZoomIt on startup, accepting the EULA, hiding the system tray icon, and hiding the Options Window on first run.
 .PARAMETER Architecture
 Specifies the architecture of the ZoomIt executable to download. Valid values are "x64" and "x86". Default is "x64", I would recommend using the x64 version unless you have a specific reason to use the x86 version. The x86 version will run the x64 version from %TEMP% on a 64-bit system.
-.PARAMETER Path
+.PARAMETER Destination
 Specifies the path to save the ZoomIt executable. Default is the User's Documents folder.
 .PARAMETER AcceptEULA
 Specifies whether to accept the End User License Agreement (EULA) by creating a registry entry for EulaAccepted. This Prevents the EULA dialog from appearing on first run.
@@ -59,11 +58,13 @@ Specifies whether to run ZoomIt on startup by adding a registry entry to the Cur
 Specifies whether to show the ZoomIt icon in the system tray. Will always set a value in the registry.
 .PARAMETER ShowOptions
 Specifies whether to show the Options Window on the first run.
+.PARAMETER StartZoomIt
+Specifies whether to start ZoomIt after installation.
 .EXAMPLE
 .\Install-ZoomIt.ps1 -AcceptEULA -RunOnStartup -ShowTrayIcon
 .NOTES
 Future Improvements:
-Add support for setting a custom Save path.
+Add support for setting a custom Save (cache) path.
 Add support for other ZoomIt settings.
 Loggging maybe
 
@@ -73,15 +74,20 @@ param (
     [ValidateSet("x64", "x86")]
     [string]$Architecture = "x64",
     [ValidateScript({
-            if ([System.Io.FileInfo]$_) {
-                return $true
+            if (!(Test-Path $_ -IsValid)) {
+                Write-Host "$($_)"
+                throw "Destination must be a valid path."
+            }
+            else {
+                $true
             }
         })]
-    [System.IO.FileInfo]$Destination,
+    [string]$Destination,
     [switch]$AcceptEULA,
     [switch]$RunOnStartup,
     [switch]$ShowTrayIcon,
-    [switch]$ShowOptions
+    [switch]$ShowOptions,
+    [switch]$StartZoomIt
 )
 
 ####### Functions #######
@@ -164,7 +170,13 @@ if ($Destination) {
     # Check if the specified path exists else create it
     if (-not (Test-Path $Destination)) {
         Write-Host "Path does not exist, creating path: [$Destination]"
-        New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+        try {
+            New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+        }
+        catch {
+            Write-Error "Failed to create path: [$Destination]"
+            exit 3
+        }
     }
     # Set the Destination Path to the specified path
     $DestinationPath = $Destination
@@ -189,7 +201,7 @@ catch {
 
 ### Get the version of the downloaded ZoomIt
 $SaveFile_FileVersion = (Get-Item -Path $SaveFile).VersionInfo.FileVersion
-Write-Host "Downloaded ZoomIt: [$SaveFile] : [$SaveFile_FileVersion]"
+Write-Host "Downloaded ZoomIt to temp location: [$SaveFile] : [$SaveFile_FileVersion]"
 
 ### Check if File already exists in Destination Path
 if ((Test-Path $DestinationFile)) {
@@ -203,8 +215,14 @@ if ((Test-Path $DestinationFile)) {
         Stop-ProcessByName -ProcessName "ZoomIt*"
 
         # Overwrite the existing file with the new version if the downloaded version is newer
-        Copy-Item -Path $SaveFile -Destination $DestinationFile -Force
-        Write-Host "Successfully Updated Existing ZoomIt to version: [$SaveFile_FileVersion]" -ForegroundColor Green
+        try {
+            Copy-Item -Path $SaveFile -Destination $DestinationFile -Force
+            Write-Host "Successfully Updated Existing ZoomIt to version: [$SaveFile_FileVersion]" -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to update existing ZoomIt to version: [$SaveFile_FileVersion]"
+            exit 4
+        }
     }
     else {
         # Output a message indicating that the existing version is up to date
@@ -219,7 +237,7 @@ else {
 
 ### Cleanup the downloaded ZoomIt file from the Save Path
 Remove-Item -Path $SaveFile -Force -ErrorAction SilentlyContinue | Out-Null
-Write-Host "Removed downloaded ZoomIt file: [$SaveFile]"
+Write-Host "Removed downloaded temp ZoomIt file: [$SaveFile]"
 
 ### Create Accept EULA Registry Key if AcceptEULA switch is set
 if ($AcceptEULA) {
@@ -276,4 +294,16 @@ if ($RunOnStartup) {
     
     # Create or update the registry entry to run ZoomIt on startup
     Set-RegistryValue -Path $RegPath -Name $RegName -Value $RegValue -PropertyType String
+}
+
+### Start ZoomIt
+if ($StartZoomIt) {
+    Write-Host "Start ZoomIt option selected"
+    try{
+        Start-Process -FilePath $DestinationFile -NoNewWindow
+        Write-Host "Successfully started ZoomIt"
+    }
+    catch {
+        Write-Error "Failed to start ZoomIt"\
+    }
 }
